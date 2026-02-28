@@ -1,0 +1,8 @@
+streamlit
+pdfplumber
+pandas
+openpyxl
+loguru
+python-dotenv
+pytest
+xlsxwriter

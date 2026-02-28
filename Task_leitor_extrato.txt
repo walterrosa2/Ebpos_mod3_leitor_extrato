@@ -1,0 +1,237 @@
+To-do (Tasks) — para o agente Google Antigravity
+
+Abaixo está uma lista de tarefas em ordem sugerida (com critérios de aceite). Pode colar direto no agente.
+
+Epic 0 — Setup do projeto
+
+ T0.1 — Criar estrutura do repositório
+
+Pastas sugeridas:
+
+app/ (streamlit)
+
+core/ (parsing, excel, utils)
+
+log/ (saída de logs)
+
+tests/
+
+Aceite: estrutura criada e importações funcionando.
+
+ T0.2 — Criar requirements.txt
+
+Sugestão de libs:
+
+streamlit
+
+pdfplumber
+
+pandas
+
+openpyxl
+
+Aceite: pip install -r requirements.txt instala sem erros.
+
+ T0.3 — Criar README.md
+
+Passo a passo para rodar:
+
+criar venv
+
+instalar dependências
+
+streamlit run app/app.py
+
+Aceite: instruções completas e reproduzíveis.
+
+Epic 1 — Parser de PDF Itaú (texto selecionável)
+
+ T1.1 — Implementar utilitário de conversão monetária pt-BR → número
+
+Entrada: string tipo -4.172,94
+
+Saída: número (recomendado Decimal ou float)
+
+Aceite: testes com casos 1,00, 1.000,00, -269,00.
+
+ T1.2 — Implementar mapeamento de mês “jan/fev/…” → número
+
+Aceite: todos os meses pt-BR suportados.
+
+ T1.3 — Extrair ano do período do extrato
+
+Regex para pegar “lançamentos período: dd/mm/yyyy até dd/mm/yyyy”
+
+Aceite: retorna ano corretamente (ex.: 2025).
+
+ T1.4 — Extrair linhas de lançamentos
+
+Percorrer páginas e coletar linhas que começam com dd / mon
+
+Aceite: retorna lista de strings de lançamentos (ordem preservada).
+
+ T1.5 — Parsear linha em registro padronizado
+
+Campos do registro:
+
+Data (date)
+
+Histórico/Descrição (string, sem ag/origem)
+
+Valor (número ou null)
+
+Tipo (Crédito/Débito ou vazio)
+
+Saldo após o lançamento (número ou null)
+
+Regras:
+
+“SALDO…” → saldo preenchido
+
+Caso contrário → valor preenchido e tipo pelo sinal
+
+remover token ag/origem (dígitos antes do valor final)
+
+Aceite: para um conjunto de linhas de exemplo, retorna campos corretos.
+
+ T1.6 — Função principal parse_itau_pdf(pdf_bytes, pdf_name) -> DataFrame
+
+Aceite: DataFrame final com colunas e tipos corretos.
+
+Epic 2 — Geração do Excel (.xlsx)
+
+ T2.1 — Implementar generate_xlsx_bytes(df) -> bytes com openpyxl
+
+1 aba: “Lançamentos”
+
+Formatar:
+
+Data: dd/mm/yyyy
+
+Valor/Saldo: moeda com 2 casas
+
+Aceite: arquivo abre no Excel e colunas aparecem na ordem correta.
+
+ T2.2 — Nome do Excel
+
+Baseado no nome do PDF: NOME_ORIGEM.pdf → NOME_ORIGEM.xlsx
+
+Aceite: nomes preservados e sanitizados (sem caracteres inválidos).
+
+ T2.3 — Gerar ZIP do lote em memória
+
+Um .xlsx por PDF dentro do ZIP
+
+Aceite: download único do ZIP com todos os arquivos.
+
+Epic 3 — Interface Streamlit (com login simples)
+
+ T3.1 — Tela de login
+
+Usuário fixo: admin
+
+Senha fixa: admin
+
+Guardar sessão em st.session_state
+
+Aceite: sem login não acessa a tela principal.
+
+ T3.2 — Tela principal (upload múltiplo)
+
+st.file_uploader(..., accept_multiple_files=True, type=["pdf"])
+
+Aceite: aceita vários PDFs.
+
+ T3.3 — Preview somente leitura
+
+Para cada PDF processado, mostrar st.dataframe(df)
+
+Aceite: usuário consegue validar visualmente antes do download.
+
+ T3.4 — Botões de download
+
+Por PDF: baixar .xlsx
+
+Lote: baixar .zip
+
+Aceite: downloads funcionam sem gravar PDF em disco.
+
+Epic 4 — Logs e auditoria
+
+ T4.1 — Criar logger para pasta ./log
+
+Criar pasta se não existir
+
+Log em arquivo com rotação simples (opcional) ou um arquivo único por dia
+
+Aceite: logs sendo gravados localmente.
+
+ T4.2 — Registrar evento de processamento
+
+Campos:
+
+usuário (admin)
+
+data/hora
+
+nome do PDF
+
+qtd linhas extraídas
+
+nome/caminho do Excel gerado (mesmo que “virtual”; pode ser só o nome do arquivo)
+
+erros/avisos
+
+Aceite: cada PDF gera uma entrada no log (sucesso ou erro).
+
+ T4.3 — Tratamento de erros por arquivo
+
+Se um PDF falhar, continuar os demais
+
+Mostrar erro amigável na UI + log detalhado
+
+Aceite: falha isolada não derruba o app.
+
+Epic 5 — Qualidade (testes) e finalização
+
+ T5.1 — Testes unitários do parser
+
+Casos de:
+
+valor negativo/positivo
+
+linha SALDO
+
+remoção de ag/origem
+
+parsing de datas/ano
+
+Aceite: suíte de testes passando.
+
+ T5.2 — Teste de integração ponta a ponta
+
+PDF → DataFrame → Excel bytes → abertura ok
+
+Aceite: validação automatizada básica (ex.: número de linhas > 0 e colunas corretas).
+
+ T5.3 — Ajustes finais de UX
+
+Mensagens claras (“X arquivos processados”, “Falhou em Y”)
+
+Aceite: fluxo simples e sem ambiguidades para usuário leigo.
+
+Definição de Pronto (DoD)
+
+App roda local via Streamlit
+
+Login admin/admin funcionando
+
+Upload múltiplo + preview + download xlsx + download zip
+
+Extração preserva todas as linhas (sem deduplicar e sem excluir “SALDO…”)
+
+Coluna “ag/origem” não aparece no Excel
+
+Logs gravados em ./log com os campos definidos
+
+Pelo menos testes básicos do parser

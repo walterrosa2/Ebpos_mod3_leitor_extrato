@@ -1,0 +1,179 @@
+PRD — Extrator de Extrato Itaú (PDF → Excel) com Streamlit
+1) Visão geral
+
+Aplicação local (rodando no computador) para extrair dados de extratos bancários Itaú em PDF (texto selecionável), exibir uma prévia para validação visual e gerar um arquivo .xlsx por PDF. Quando houver múltiplos PDFs, gerar também um .zip com todos os Excel.
+
+2) Objetivo do produto
+
+Reduzir o tempo de digitação/retrabalho na conciliação.
+
+Padronizar a saída em um layout simples para conciliação manual.
+
+3) Público / Persona
+
+Time contábil/financeiro com baixo conhecimento técnico.
+
+Uso local com autenticação simples (admin/admin).
+
+4) Escopo (MVP)
+
+Entradas
+
+PDF(s) do Itaú, texto selecionável
+
+Sem senha
+
+Um PDF por conta
+
+Arquivos pequenos (<1MB), poucos por semana
+
+Processamento
+
+Extrair todas as linhas do extrato (inclusive “SALDO INICIAL”, “SALDO APLIC…”, “SALDO FINAL”, estornos etc.)
+
+Não deduplicar, não categorizar, não limpar histórico (manter original)
+
+Ignorar a coluna “ag/origem” (não exportar)
+
+Saídas
+
+1 Excel (.xlsx) por PDF, nomeado com base no nome do PDF
+
+1 aba “Lançamentos”
+
+Colunas (exatamente nesta ordem):
+
+Data
+
+Histórico/Descrição
+
+Valor
+
+Tipo (Crédito/Débito)
+
+Saldo após o lançamento (somente diário — apenas onde existir no PDF)
+
+UI
+
+Upload múltiplo de PDFs
+
+Visualizar tabela extraída (somente leitura)
+
+Baixar Excel individual e baixar ZIP do lote
+
+Autenticação
+
+Tela de login simples: usuário fixo admin e senha fixa admin
+
+Sessão em memória (Streamlit session_state)
+
+Logs (auditoria)
+
+Não armazenar PDFs
+
+Registrar em pasta ./log:
+
+usuário logado
+
+data/hora
+
+nome do arquivo PDF
+
+quantidade de linhas extraídas
+
+caminho/nome do Excel gerado
+
+erros/avisos (se houver)
+
+5) Fora de escopo (por enquanto)
+
+OCR (PDF scaneado/imagem)
+
+Suporte a outros bancos
+
+Edição de linhas antes de exportar
+
+Regras contábeis/categorização automática
+
+Armazenar PDFs ou históricos em banco
+
+Controle avançado de usuários/senhas
+
+Regras de negócio e parsing (Itaú)
+6) Regras para “Valor” vs “Saldo após o lançamento”
+
+Como no extrato o “saldo” aparece apenas em linhas específicas do dia, a regra do MVP será:
+
+Se o Histórico/Descrição começar com “SALDO” (ex.: “SALDO INICIAL”, “SALDO APLIC AUT MAIS”, “SALDO FINAL”…):
+
+preencher Saldo após o lançamento com o número
+
+deixar Valor em branco (null)
+
+deixar Tipo em branco
+
+Caso contrário:
+
+preencher Valor
+
+Tipo:
+
+“Crédito” se Valor > 0
+
+“Débito” se Valor < 0
+
+deixar Saldo após o lançamento em branco (null)
+
+7) Regra para ignorar “ag/origem”
+
+Quando houver um token numérico (somente dígitos) imediatamente antes do valor monetário final, com tamanho típico (ex.: 3 a 6 dígitos), tratar como ag/origem e remover do Histórico.
+
+8) Datas e ano
+
+A data vem como “dd / mon” (ex.: “02 / jan”).
+
+O ano deve ser obtido do trecho do PDF “lançamentos período: dd/mm/yyyy até dd/mm/yyyy”.
+
+Montar Data final como dd/mm/AAAA.
+
+9) Moeda e formato numérico
+
+Valores vêm em pt-BR (ex.: -4.172,94).
+
+Converter para número (float/Decimal) internamente.
+
+No Excel:
+
+formatação de moeda BRL (R$) com 2 casas
+
+data em dd/mm/yyyy
+
+Fluxo do usuário (UX)
+
+Usuário acessa a aplicação local
+
+Tela de login (admin/admin)
+
+Tela principal:
+
+Upload de múltiplos PDFs
+
+Para cada PDF:
+
+mostra a tabela extraída (preview)
+
+botão de download do .xlsx
+
+Botão “Baixar ZIP do lote”
+
+Logs gravados automaticamente em ./log
+
+Requisitos não-funcionais
+
+Rodar localmente em Windows/Mac/Linux
+
+Processar PDFs grandes (>20 páginas) com tempo aceitável (ex.: poucos segundos por arquivo)
+
+Robustez: se um PDF falhar, os demais continuam (com erro registrado)
+
+Não persistir conteúdo do PDF (somente nome do arquivo e métricas)
